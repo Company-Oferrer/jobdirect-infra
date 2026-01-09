@@ -1,0 +1,46 @@
+name: Deploy Infrastructure - DEV
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/dev/**'
+
+jobs:
+  terraform-dev:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        working-directory: terraform/dev
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform/dev
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        working-directory: terraform/dev
+        run: terraform apply -auto-approve
+
+      - name: Get Outputs
+        working-directory: terraform/dev
+        run: |
+          echo "## Terraform Outputs - DEV" >> $GITHUB_STEP_SUMMARY
+          terraform output >> $GITHUB_STEP_SUMMARY

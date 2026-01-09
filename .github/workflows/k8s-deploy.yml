@@ -1,0 +1,79 @@
+name: Deploy Applications to Kubernetes
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy'
+        required: true
+        type: choice
+        options:
+          - dev
+          - qa
+          - prod
+      deploy_monitoring:
+        description: 'Deploy monitoring stack?'
+        required: false
+        type: boolean
+        default: false
+
+jobs:
+  deploy-k8s:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS Credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
+            --name aks-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
+            --overwrite-existing
+
+      - name: Create PostgreSQL Secret
+        run: |
+          CONNECTION_STRING=$(az postgres flexible-server show \
+            --resource-group rg-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
+            --name psql-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
+            --query "fullyQualifiedDomainName" -o tsv)
+
+          kubectl create secret generic postgres-secret \
+            --from-literal=connection-string="postgresql://jobdirectadmin:P@ssw0rd123!@${CONNECTION_STRING}:5432/jobdirect?sslmode=require" \
+            --dry-run=client -o yaml | kubectl apply -f -
+
+      - name: Deploy Backend
+        run: kubectl apply -f kubernetes/jobdirect-backend.yaml
+
+      - name: Deploy Frontend
+        run: kubectl apply -f kubernetes/jobdirect-app.yaml
+
+      - name: Wait for Deployments
+        run: |
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/jobdirect-backend || true
+          kubectl wait --for=condition=available --timeout=300s \
+            deployment/jobdirect-app || true
+
+      - name: Get Service Status
+        run: |
+          echo "## Deployment Status - ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
+          kubectl get svc >> $GITHUB_STEP_SUMMARY
+
+      - name: Deploy Monitoring (Optional)
+        if: ${{ github.event.inputs.deploy_monitoring == 'true' }}
+        run: |
+          chmod +x kubernetes/setup-monitoring.sh
+          ./kubernetes/setup-monitoring.sh ${{ github.event.inputs.environment }}

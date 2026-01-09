@@ -1,0 +1,41 @@
+name: Deploy Infrastructure - PROD
+
+on:
+  workflow_dispatch:
+
+jobs:
+  terraform-prod:
+    runs-on: ubuntu-latest
+    environment: prod
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.0
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Init
+        working-directory: terraform/prod
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: terraform/prod
+        run: terraform plan -no-color
+
+      - name: Terraform Apply
+        working-directory: terraform/prod
+        run: terraform apply -auto-approve
+
+      - name: Get Outputs
+        working-directory: terraform/prod
+        run: |
+          echo "## Terraform Outputs - PROD" >> $GITHUB_STEP_SUMMARY
+          terraform output >> $GITHUB_STEP_SUMMARY
