@@ -1,0 +1,75 @@
+name: Auto Deploy to DEV
+
+on:
+  repository_dispatch:
+    types:
+      - deploy-frontend-dev
+      - deploy-backend-dev
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: dev
+
+    steps:
+      - name: Checkout infra code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS Credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-jobdirect-dev-eastus-01 \
+            --name aks-jobdirect-dev-eastus-01 \
+            --overwrite-existing
+
+      - name: Deploy Frontend
+        if: github.event.action == 'deploy-frontend-dev'
+        run: |
+          echo "🚀 Deploying frontend with image tag: ${{ github.event.client_payload.image_tag }}"
+          echo "👤 Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          echo "💬 Commit: ${{ github.event.client_payload.commit_message }}"
+
+          # Update image tag in deployment
+          kubectl set image deployment/jobdirect-app \
+            frontend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-app:${{ github.event.client_payload.image_tag }} \
+            --record
+
+          # Wait for rollout
+          kubectl rollout status deployment/jobdirect-app --timeout=300s
+
+      - name: Deploy Backend
+        if: github.event.action == 'deploy-backend-dev'
+        run: |
+          echo "🚀 Deploying backend with image tag: ${{ github.event.client_payload.image_tag }}"
+          echo "👤 Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          echo "💬 Commit: ${{ github.event.client_payload.commit_message }}"
+
+          # Update image tag in deployment
+          kubectl set image deployment/jobdirect-backend \
+            backend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.client_payload.image_tag }} \
+            --record
+
+          # Wait for rollout
+          kubectl rollout status deployment/jobdirect-backend --timeout=300s
+
+      - name: Verify Deployment
+        run: |
+          echo "## ✅ Deployment Status - DEV" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event.client_payload.triggered_by }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image tag:** ${{ github.event.client_payload.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source commit:** ${{ github.event.client_payload.commit_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
+          kubectl get svc >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Recent Events" >> $GITHUB_STEP_SUMMARY
+          kubectl get events --sort-by='.lastTimestamp' | tail -10 >> $GITHUB_STEP_SUMMARY

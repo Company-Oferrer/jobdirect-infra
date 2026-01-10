@@ -1,0 +1,97 @@
+name: Auto Deploy to QA/PROD
+
+on:
+  repository_dispatch:
+    types:
+      - deploy-frontend-qa
+      - deploy-backend-qa
+      - deploy-frontend-prod
+      - deploy-backend-prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: ${{ github.event.client_payload.environment }}
+
+    steps:
+      - name: Checkout infra code
+        uses: actions/checkout@v4
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Get AKS Credentials
+        run: |
+          az aks get-credentials \
+            --resource-group rg-jobdirect-${{ github.event.client_payload.environment }}-eastus-01 \
+            --name aks-jobdirect-${{ github.event.client_payload.environment }}-eastus-01 \
+            --overwrite-existing
+
+      - name: Deploy Frontend (QA)
+        if: github.event.action == 'deploy-frontend-qa'
+        run: |
+          echo "🚀 Deploying frontend to QA"
+          echo "👤 Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          echo "📦 Image tag: ${{ github.event.client_payload.image_tag }}"
+
+          kubectl set image deployment/jobdirect-app \
+            frontend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-app:${{ github.event.client_payload.image_tag }} \
+            --record
+
+          kubectl rollout status deployment/jobdirect-app --timeout=300s
+
+      - name: Deploy Backend (QA)
+        if: github.event.action == 'deploy-backend-qa'
+        run: |
+          echo "🚀 Deploying backend to QA"
+          echo "👤 Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          echo "📦 Image tag: ${{ github.event.client_payload.image_tag }}"
+
+          kubectl set image deployment/jobdirect-backend \
+            backend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.client_payload.image_tag }} \
+            --record
+
+          kubectl rollout status deployment/jobdirect-backend --timeout=300s
+
+      - name: Deploy Frontend (PROD)
+        if: github.event.action == 'deploy-frontend-prod'
+        run: |
+          echo "🚀 Deploying frontend to PROD"
+          echo "👤 Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          echo "📦 Image tag: ${{ github.event.client_payload.image_tag }}"
+
+          kubectl set image deployment/jobdirect-app \
+            frontend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-app:${{ github.event.client_payload.image_tag }} \
+            --record
+
+          kubectl rollout status deployment/jobdirect-app --timeout=300s
+
+      - name: Deploy Backend (PROD)
+        if: github.event.action == 'deploy-backend-prod'
+        run: |
+          echo "🚀 Deploying backend to PROD"
+          echo "👤 Triggered by: ${{ github.event.client_payload.triggered_by }}"
+          echo "📦 Image tag: ${{ github.event.client_payload.image_tag }}"
+
+          kubectl set image deployment/jobdirect-backend \
+            backend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.client_payload.image_tag }} \
+            --record
+
+          kubectl rollout status deployment/jobdirect-backend --timeout=300s
+
+      - name: Verify Deployment
+        run: |
+          echo "## ✅ Deployment Status - ${{ github.event.client_payload.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Environment:** ${{ github.event.client_payload.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event.client_payload.triggered_by }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Image tag:** ${{ github.event.client_payload.image_tag }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Source commit:** ${{ github.event.client_payload.commit_sha }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Pods" >> $GITHUB_STEP_SUMMARY
+          kubectl get pods >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services" >> $GITHUB_STEP_SUMMARY
+          kubectl get svc >> $GITHUB_STEP_SUMMARY
