@@ -36,11 +36,16 @@ jobs:
 
           # Update image tag in deployment
           kubectl set image deployment/jobdirect-app \
-            frontend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-app:${{ github.event.client_payload.image_tag }} \
-            --record
+            frontend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-app:${{ github.event.client_payload.image_tag }}
 
           # Wait for rollout
-          kubectl rollout status deployment/jobdirect-app --timeout=300s
+          kubectl rollout status deployment/jobdirect-app --timeout=300s || {
+            echo "Rollout failed. Showing pod status and events:"
+            kubectl get pods -l app=frontend
+            kubectl describe pods -l app=frontend | tail -50
+            kubectl get events --sort-by='.lastTimestamp' | tail -20
+            exit 1
+          }
 
       - name: Deploy Backend
         if: github.event.action == 'deploy-backend-dev'
@@ -51,11 +56,16 @@ jobs:
 
           # Update image tag in deployment
           kubectl set image deployment/jobdirect-backend \
-            backend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.client_payload.image_tag }} \
-            --record
+            backend=${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${{ github.event.client_payload.image_tag }}
 
           # Wait for rollout
-          kubectl rollout status deployment/jobdirect-backend --timeout=300s
+          kubectl rollout status deployment/jobdirect-backend --timeout=300s || {
+            echo "Rollout failed. Showing pod status and events:"
+            kubectl get pods -l app=backend
+            kubectl describe pods -l app=backend | tail -50
+            kubectl get events --sort-by='.lastTimestamp' | tail -20
+            exit 1
+          }
 
       - name: Verify Deployment
         run: |
