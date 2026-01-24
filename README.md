@@ -1,118 +1,131 @@
 # JobDirect Infrastructure
 
-Infraestructura como código (IaC) multi-entorno para el proyecto JobDirect del Diploma DevOps Engineer.
+Infraestructura como Codigo (IaC) para el proyecto JobDirect - Diploma DevOps Engineer.
 
-## Descripción del Proyecto
+## Que es este repositorio?
 
-Este repositorio contiene la infraestructura necesaria para desplegar las aplicaciones **jobdirect-app** (frontend) y *
-*jobdirect-backend** (API) en Azure Kubernetes Service (AKS) con soporte para tres ambientes: **dev**, **qa** y **prod
-**.
+Este repositorio contiene **toda la infraestructura** necesaria para ejecutar JobDirect en la nube de Azure. En lugar de crear recursos manualmente desde el portal de Azure, usamos **Terraform** para definir la infraestructura como codigo.
 
-### Aplicaciones
+### Por que Infraestructura como Codigo (IaC)?
 
-- **jobdirect-app**: Frontend React + Vite + Tailwind CSS (puerto 80)
-- **jobdirect-backend**: API Express + PostgreSQL (puerto 3000)
-
-### Tecnologías Utilizadas
-
-- **IaC**: Terraform 1.9.0
-- **Cloud**: Microsoft Azure (AKS, PostgreSQL Flexible Server)
-- **Contenedores**: Docker + Kubernetes
-- **CI/CD**: GitHub Actions con repository dispatch
-- **Monitoreo**: Prometheus + Grafana (Helm)
+| Sin IaC (Manual) | Con IaC (Terraform) |
+|------------------|---------------------|
+| Crear recursos clickeando en Azure Portal | Definir recursos en archivos `.tf` |
+| Dificil de replicar en otro ambiente | Un `terraform apply` crea todo igual |
+| No hay historial de cambios | Git trackea cada cambio |
+| Propenso a errores humanos | Automatizado y consistente |
+| Documentacion separada | El codigo ES la documentacion |
 
 ---
 
-## Integración CI/CD
+## Arquitectura del Proyecto
 
-Este proyecto incluye un sistema de CI/CD completamente integrado que conecta los tres repositorios (jobdirect-app,
-jobdirect-backend, jobdirect-infra) mediante GitHub Actions.
-
-### Flujo de Trabajo
-
-**DEV - Automático:**
-
-- Hacer push a `main` en jobdirect-app o jobdirect-backend
-- Se ejecutan tests y linter automáticamente
-- Se construye imagen Docker y se sube a DockerHub
-- Se despliega automáticamente a AKS DEV mediante `repository_dispatch`
-
-**QA/PROD - Manual:**
-
-- Ejecutar workflow manual en jobdirect-app o jobdirect-backend
-- Seleccionar ambiente (qa o prod)
-- Opcionalmente activar deploy automático a Kubernetes
-
-### Documentación de CI/CD
-
-Para usar el sistema CI/CD, consultar en orden:
-
-1. **[INIT_SETUP.md](CONFIGURACION_RAPIDA.md)** - Configuración inicial de secrets y Azure
-2. **[CI_CD_USAGE.md](CI_CD_USAGE.md)** - Guía completa de uso del CI/CD
-3. **[INTEGRACION_CICD.md](INTEGRACION_CICD.md)** - Detalles técnicos del patrón repository_dispatch
-
----
-
-## Arquitectura
-
-### Flujo CI/CD Completo
+### Vision General
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                        APLICACIONES                                  │
-│  ┌─────────────────────┐           ┌─────────────────────┐          │
-│  │  jobdirect-app      │           │  jobdirect-backend  │          │
-│  │  (Frontend Repo)    │           │  (Backend Repo)     │          │
-│  └─────────────────────┘           └─────────────────────┘          │
-│           ↓                                    ↓                     │
-│    Push to main                         Push to main                │
-│           ↓                                    ↓                     │
-│  ┌─────────────────────┐           ┌─────────────────────┐          │
-│  │ CI/CD Auto DEV      │           │ CI/CD Auto DEV      │          │
-│  │ - Test + Lint       │           │ - Test + Lint       │          │
-│  │ - Build Docker      │           │ - Build Docker      │          │
-│  │ - Push DockerHub    │           │ - Push DockerHub    │          │
-│  │ - Trigger Deploy    │           │ - Trigger Deploy    │          │
-│  └─────────────────────┘           └─────────────────────┘          │
-└─────────────────────────────────────────────────────────────────────┘
-                          ↓                      ↓
-              repository_dispatch event     repository_dispatch event
-                          ↓                      ↓
-┌─────────────────────────────────────────────────────────────────────┐
-│                    jobdirect-infra (Este Repo)                       │
-│  ┌───────────────────────────────────────────────────────────┐      │
-│  │ Auto Deploy to DEV                                        │      │
-│  │ - Connect to AKS DEV                                      │      │
-│  │ - kubectl set image (rolling update)                     │      │
-│  │ - kubectl rollout status                                 │      │
-│  └───────────────────────────────────────────────────────────┘      │
-│                                                                      │
-│  ┌───────────────────────────────────────────────────────────┐      │
-│  │ Auto Deploy to QA/PROD (Manual trigger)                  │      │
-│  │ - Mismo flujo pero con workflow_dispatch                 │      │
-│  └───────────────────────────────────────────────────────────┘      │
-│                                                                      │
-│  ┌───────────────────────────────────────────────────────────┐      │
-│  │ Deploy Infrastructure (Terraform)                         │      │
-│  │ - terraform-dev.yml                                       │      │
-│  │ - terraform-qa.yml                                        │      │
-│  │ - terraform-prod.yml                                      │      │
-│  └───────────────────────────────────────────────────────────┘      │
-└─────────────────────────────────────────────────────────────────────┘
-                          ↓
+│                         REPOSITORIOS                                 │
+├─────────────────────────────────────────────────────────────────────┤
+│  jobdirect-app        jobdirect-backend       jobdirect-infra       │
+│  (Frontend React)     (API Node.js)           (Este repo)           │
+│        │                    │                       │               │
+│        └────────────────────┴───────────────────────┘               │
+│                             │                                        │
+│                    GitHub Actions CI/CD                              │
+│                             │                                        │
+└─────────────────────────────┼────────────────────────────────────────┘
+                              │
+                              ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                         AZURE CLOUD                                  │
-│  ┌───────────────┐    ┌───────────────┐    ┌───────────────┐       │
-│  │      DEV      │    │       QA      │    │     PROD      │       │
-│  │  (Auto Deploy)│    │   (Manual)    │    │   (Manual)    │       │
-│  │               │    │               │    │               │       │
-│  │ AKS (1 node)  │    │ AKS (2 nodes) │    │ AKS (3 nodes) │       │
-│  │ PostgreSQL    │    │ PostgreSQL    │    │ PostgreSQL    │       │
-│  │ Prometheus    │    │ Prometheus    │    │ Prometheus    │       │
-│  │ Grafana       │    │ Grafana       │    │ Grafana       │       │
-│  └───────────────┘    └───────────────┘    └───────────────┘       │
+├─────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│   ┌─────────────┐      ┌─────────────┐      ┌─────────────┐        │
+│   │     DEV     │      │     QA      │      │    PROD     │        │
+│   │             │      │             │      │             │        │
+│   │ ┌─────────┐ │      │ ┌─────────┐ │      │ ┌─────────┐ │        │
+│   │ │   AKS   │ │      │ │   AKS   │ │      │ │   AKS   │ │        │
+│   │ │ 1 nodo  │ │      │ │ 2 nodos │ │      │ │ 3 nodos │ │        │
+│   │ └────┬────┘ │      │ └────┬────┘ │      │ └────┬────┘ │        │
+│   │      │      │      │      │      │      │      │      │        │
+│   │ ┌────┴────┐ │      │ ┌────┴────┐ │      │ ┌────┴────┐ │        │
+│   │ │PostgreSQL│ │     │ │PostgreSQL│ │     │ │PostgreSQL│ │       │
+│   │ │  32 GB  │ │      │ │  64 GB  │ │      │ │ 128 GB  │ │        │
+│   │ └─────────┘ │      │ └─────────┘ │      │ └─────────┘ │        │
+│   └─────────────┘      └─────────────┘      └─────────────┘        │
+│                                                                      │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+### Por que 3 ambientes?
+
+| Ambiente | Proposito | Quien lo usa |
+|----------|-----------|--------------|
+| **DEV** | Desarrollo y pruebas rapidas | Desarrolladores |
+| **QA** | Testing de calidad antes de produccion | QA Team |
+| **PROD** | Usuarios reales | Clientes |
+
+**Beneficios:**
+- Los errores se detectan en DEV/QA antes de llegar a usuarios reales
+- Cada ambiente puede tener configuraciones diferentes (mas recursos en PROD)
+- Los desarrolladores pueden experimentar sin afectar produccion
+
+---
+
+## Tecnologias Utilizadas
+
+### Terraform (IaC)
+
+**Que es?** Herramienta para crear infraestructura usando codigo.
+
+**Por que Terraform?**
+- Es el estandar de la industria
+- Soporta multiples nubes (Azure, AWS, GCP)
+- Tiene estado (`terraform.tfstate`) que trackea lo que existe
+- Planifica cambios antes de aplicarlos (`terraform plan`)
+
+**Archivos principales:**
+```
+provider.tf  → Configura la conexion a Azure
+aks.tf       → Define el cluster de Kubernetes
+postgres.tf  → Define la base de datos
+```
+
+### Azure Kubernetes Service (AKS)
+
+**Que es?** Kubernetes administrado por Azure.
+
+**Por que Kubernetes?**
+- Orquesta contenedores automaticamente
+- Escala aplicaciones segun demanda
+- Reinicia contenedores que fallan
+- Balancea carga entre replicas
+
+**Por que AKS (y no instalar Kubernetes manualmente)?**
+- Azure administra el control plane (masters)
+- Actualizaciones automaticas de seguridad
+- Integrado con Azure AD y monitoreo
+- Menos trabajo operativo
+
+### PostgreSQL Flexible Server
+
+**Que es?** Base de datos PostgreSQL administrada por Azure.
+
+**Por que PostgreSQL administrado?**
+- Backups automaticos
+- Alta disponibilidad
+- Patches de seguridad automaticos
+- Escalado sin downtime
+
+### GitHub Actions (CI/CD)
+
+**Que es?** Automatizacion de pipelines en GitHub.
+
+**Por que GitHub Actions?**
+- Integrado con nuestros repositorios
+- Gratis para repositorios publicos
+- Facil de configurar con YAML
+- Soporta secretos para credenciales
 
 ---
 
@@ -120,332 +133,184 @@ Para usar el sistema CI/CD, consultar en orden:
 
 ```
 jobdirect-infra/
-├── terraform/
-│   ├── dev/
-│   │   ├── provider.tf     # Configuración Azure provider
-│   │   ├── aks.tf          # Cluster AKS (1 nodo)
-│   │   └── postgres.tf     # PostgreSQL (32GB, Basic)
-│   ├── qa/
+│
+├── terraform/                    # Infraestructura como codigo
+│   ├── dev/                      # Ambiente de desarrollo
+│   │   ├── provider.tf           # Conexion a Azure
+│   │   ├── aks.tf                # Cluster Kubernetes (1 nodo)
+│   │   └── postgres.tf           # Base de datos (32GB)
+│   ├── qa/                       # Ambiente de QA
 │   │   ├── provider.tf
-│   │   ├── aks.tf          # Cluster AKS (2 nodos)
-│   │   └── postgres.tf     # PostgreSQL (64GB, Standard)
-│   └── prod/
+│   │   ├── aks.tf                # Cluster Kubernetes (2 nodos)
+│   │   └── postgres.tf           # Base de datos (64GB)
+│   └── prod/                     # Ambiente de produccion
 │       ├── provider.tf
-│       ├── aks.tf          # Cluster AKS (3 nodos)
-│       └── postgres.tf     # PostgreSQL (128GB, Premium)
+│       ├── aks.tf                # Cluster Kubernetes (3 nodos)
+│       └── postgres.tf           # Base de datos (128GB)
 │
-├── kubernetes/
-│   ├── jobdirect-app.yaml       # Deployment + Service frontend
-│   ├── jobdirect-backend.yaml   # Deployment + Service backend
-│   └── setup-monitoring.sh      # Script instalación Prometheus/Grafana
+├── kubernetes/                   # Manifiestos de Kubernetes
+│   ├── jobdirect-app.yaml        # Deployment del frontend
+│   ├── jobdirect-backend.yaml    # Deployment del backend
+│   └── setup-monitoring.sh       # Instalacion de Prometheus/Grafana
 │
-├── .github/workflows/
-│   ├── terraform-dev.yml           # Deploy infraestructura DEV
-│   ├── terraform-qa.yml            # Deploy infraestructura QA
-│   ├── terraform-prod.yml          # Deploy infraestructura PROD
-│   ├── auto-deploy-dev.yml         # Auto-deploy apps a DEV (via dispatch)
-│   └── auto-deploy-qa-prod.yml     # Auto-deploy apps a QA/PROD (via dispatch)
+├── .github/workflows/            # Pipelines CI/CD
+│   ├── terraform-dev.yml         # Deploy infra DEV
+│   ├── terraform-qa.yml          # Deploy infra QA
+│   ├── terraform-prod.yml        # Deploy infra PROD
+│   ├── auto-deploy-dev.yml       # Auto-deploy apps a DEV
+│   └── auto-deploy-qa-prod.yml   # Deploy apps a QA/PROD
 │
-├── CONFIGURACION_RAPIDA.md         # Guía de configuración rápida
-├── CI_CD_USAGE.md                  # Guía de uso CI/CD (IMPORTANTE)
-├── INTEGRACION_CICD.md             # Detalles técnicos CI/CD
-├── PLAN_SIMPLE.md                  # Plan detallado del proyecto
-├── RESUMEN_EJECUTIVO.md            # Vista general del proyecto
-├── ARQUITECTURA_VISUAL.md          # Diagramas para presentaciones
-└── README.md                       # Este archivo
+├── README.md                     # Este archivo
+├── QUICK_START.md                # Guia de configuracion inicial
+└── CI_CD_GUIDE.md                # Guia del sistema CI/CD
 ```
-
----
-
-## Guía de Despliegue
-
-### Requisitos Previos
-
-1. **Cuenta Azure** con suscripción activa
-2. **Azure CLI** instalado y configurado
-3. **Terraform** 1.9.0 instalado
-4. **kubectl** instalado
-5. **Helm 3** instalado (para monitoreo)
-6. **Acceso a GitHub** con permisos para GitHub Actions
-
-### Configuración Inicial
-
-#### 1. Clonar el repositorio
-
-```bash
-git clone https://github.com/Company-Oferrer/jobdirect-infra.git
-cd jobdirect-infra
-```
-
-#### 2. Configurar Azure Service Principal
-
-```bash
-# Crear Service Principal para GitHub Actions
-az ad sp create-for-rbac \
-  --name "sp-jobdirect-infra" \
-  --role Contributor \
-  --scopes /subscriptions/YOUR_SUBSCRIPTION_ID \
-  --sdk-auth
-
-# Copiar el output JSON para GitHub Secrets
-```
-
-#### 3. Configurar GitHub Secrets
-
-Ir a **Settings → Secrets and variables → Actions** y crear:
-
-| Secret Name             | Descripción              | Valor                                | Repositorio                 |
-|-------------------------|--------------------------|--------------------------------------|-----------------------------|
-| `AZURE_CREDENTIALS`     | Service Principal JSON   | Output del comando anterior          | jobdirect-infra             |
-| `AZURE_SUBSCRIPTION_ID` | ID de suscripción Azure  | `YOUR_SUBSCRIPTION_ID`               | jobdirect-infra             |
-| `DOCKERHUB_USERNAME`    | Usuario DockerHub        | `companyoferrer`                     | Todos (app, backend, infra) |
-| `DOCKERHUB_TOKEN`       | Token DockerHub          | Crear en hub.docker.com              | app, backend                |
-| `INFRA_DEPLOY_TOKEN`    | GitHub PAT para dispatch | Ver [CI_CD_USAGE.md](CI_CD_USAGE.md) | app, backend                |
-
-**Nota:** Para configuración detallada del CI/CD y creación del Personal Access Token (PAT),
-consultar [CI_CD_USAGE.md](CI_CD_USAGE.md).
-
----
-
-## Opción A: Despliegue Manual (Terraform CLI)
-
-### Paso 1: Desplegar Infraestructura DEV
-
-```bash
-cd terraform/dev
-
-# Inicializar Terraform
-terraform init
-
-# Ver plan de cambios
-terraform plan
-
-# Aplicar cambios
-terraform apply
-
-# Guardar outputs importantes
-terraform output -json > outputs.json
-```
-
-### Paso 2: Conectar a AKS
-
-```bash
-# Obtener credenciales del cluster
-az aks get-credentials \
-  --resource-group rg-jobdirect-dev-eastus-01 \
-  --name aks-jobdirect-dev-eastus-01 \
-  --overwrite-existing
-
-# Verificar conexión
-kubectl get nodes
-```
-
-### Paso 3: Crear Secret de PostgreSQL
-
-```bash
-# Obtener FQDN de PostgreSQL
-POSTGRES_FQDN=$(terraform output -raw postgres_fqdn)
-
-# Crear secret en Kubernetes
-kubectl create secret generic postgres-secret \
-  --from-literal=connection-string="postgresql://jobdirectadmin:Proyectos123@${POSTGRES_FQDN}:5432/jobdirect?sslmode=require"
-```
-
-### Paso 4: Desplegar Aplicaciones
-
-```bash
-cd ../../kubernetes
-
-# Desplegar backend
-kubectl apply -f jobdirect-backend.yaml
-
-# Desplegar frontend
-kubectl apply -f jobdirect-app.yaml
-
-# Verificar deployments
-kubectl get pods
-kubectl get svc
-```
-
-### Paso 5: Instalar Monitoreo (Opcional)
-
-```bash
-# Dar permisos al script
-chmod +x setup-monitoring.sh
-
-# Ejecutar instalación
-./setup-monitoring.sh dev
-
-# Obtener IP de Grafana
-kubectl get svc -n monitoring
-```
-
----
-
-## Opción B: Despliegue Automatizado (GitHub Actions)
-
-### CI/CD Multi-Ambiente
-
-Este proyecto tiene **dos flujos CI/CD separados**:
-
-1. **Infraestructura (Terraform)**: Deploy de AKS, PostgreSQL, etc.
-2. **Aplicaciones (Kubernetes)**: Deploy de frontend y backend a K8s
-
----
-
-### A. Despliegue de Infraestructura (Terraform)
-
-Esta es una **operación única** para crear AKS, PostgreSQL, etc.
-
-1. Ve a **GitHub → jobdirect-infra → Actions → Deploy Infrastructure - DEV**
-2. Click en **Run workflow**
-3. Seleccionar branch `main`
-4. Click en **Run workflow**
-5. Esperar a que termine (~5-10 minutos)
-
-Esto crea:
-
-- Resource Group
-- AKS Cluster
-- PostgreSQL Flexible Server
-
----
-
-### B. Despliegue de Aplicaciones (Automático)
-
-Una vez que la infraestructura está lista, el **deploy de aplicaciones es automático**:
-
-#### Para DEV (Automático en cada push):
-
-```bash
-# Ejemplo: Actualizar frontend
-cd jobdirect-app
-git add .
-git commit -m "feat: nueva funcionalidad"
-git push origin main
-
-# Automáticamente:
-# - Se ejecutan tests y linter
-# - Se hace build de imagen Docker
-# - Se sube a DockerHub con tags :dev y :SHA
-# - Se dispara deploy automático a AKS DEV
-```
-
-El mismo flujo aplica para `jobdirect-backend`.
-
-#### Para QA/PROD (Manual):
-
-1. Ve a **GitHub → jobdirect-app → Actions → CD - Deploy Frontend to DockerHub (Manual QA/PROD)**
-2. Selecciona:
-    - **ambiente**: `qa` o `prod`
-    - **¿Disparar deploy automático a K8s?**: `true`
-3. Click en **Run workflow**
-
-**Nota:** Para ejemplos detallados, troubleshooting y configuración completa, ver [CI_CD_USAGE.md](CI_CD_USAGE.md).
 
 ---
 
 ## Diferencias entre Ambientes
 
-| Recurso                  | Dev             | QA                 | Prod               |
-|--------------------------|-----------------|--------------------|--------------------|
-| **AKS Nodos**            | 1               | 2                  | 3                  |
-| **VM Size**              | standard_a2_v2  | standard_d2s_v3    | standard_d4s_v3    |
-| **PostgreSQL Storage**   | 32 GB           | 64 GB              | 128 GB             |
-| **PostgreSQL SKU**       | B_Standard_B1ms | GP_Standard_D2s_v3 | GP_Standard_D4s_v3 |
-| **Backup Days**          | 7               | 14                 | 35                 |
-| **Geo-Redundant Backup** | No              | No                 | Sí                 |
+### Por que diferentes configuraciones?
+
+| Recurso | DEV | QA | PROD | Razon |
+|---------|-----|-----|------|-------|
+| **Nodos AKS** | 1 | 2 | 3 | PROD necesita alta disponibilidad |
+| **VM Size** | Standard_B2s | Standard_D2s_v3 | Standard_D4s_v3 | Mas CPU/RAM para mas usuarios |
+| **PostgreSQL** | 32 GB | 64 GB | 128 GB | Mas datos en produccion |
+| **Backups** | 7 dias | 14 dias | 35 dias | Mas retencion para compliance |
+| **Geo-Backup** | No | No | Si | Disaster recovery en PROD |
+
+### Costos Estimados (mensual)
+
+| Ambiente | Costo Aprox | Justificacion |
+|----------|-------------|---------------|
+| DEV | ~$50 | Minimo para desarrollo |
+| QA | ~$150 | Simula produccion |
+| PROD | ~$500 | Alta disponibilidad |
 
 ---
 
-## Verificación y Testing
+## Como funciona el flujo de trabajo?
 
-### Verificar Infraestructura
+### 1. Desarrollo Local
 
 ```bash
-# Listar resource groups
-az group list --query "[?contains(name, 'jobdirect')]" -o table
+# El desarrollador trabaja en su maquina
+cd jobdirect-backend
+npm run dev
 
-# Listar clusters AKS
-az aks list --query "[?contains(name, 'jobdirect')]" -o table
-
-# Listar PostgreSQL servers
-az postgres flexible-server list --query "[?contains(name, 'jobdirect')]" -o table
+# Hace cambios y los prueba localmente
 ```
 
-### Verificar Aplicaciones
+### 2. Push a GitHub
 
 ```bash
+git add .
+git commit -m "feat: nueva funcionalidad"
+git push origin main
+```
+
+### 3. CI/CD Automatico (DEV)
+
+```
+Push a main
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  GitHub Actions (en app/backend)    │
+│  1. Ejecuta tests                   │
+│  2. Ejecuta linter                  │
+│  3. Build imagen Docker             │
+│  4. Push a DockerHub                │
+│  5. Notifica a jobdirect-infra      │
+└─────────────────────────────────────┘
+    │
+    ▼
+┌─────────────────────────────────────┐
+│  GitHub Actions (en infra)          │
+│  1. Conecta a AKS                   │
+│  2. Actualiza deployment            │
+│  3. Espera rollout                  │
+└─────────────────────────────────────┘
+    │
+    ▼
+  DEPLOYED EN DEV
+```
+
+### 4. Promocion a QA/PROD (Manual)
+
+Cuando DEV esta estable, se promueve manualmente:
+
+1. Ir a GitHub Actions
+2. Ejecutar workflow manual
+3. Seleccionar ambiente (qa/prod)
+4. Confirmar deploy
+
+---
+
+## Documentacion Adicional
+
+| Documento | Contenido | Cuando usarlo |
+|-----------|-----------|---------------|
+| **[QUICK_START.md](QUICK_START.md)** | Configuracion inicial de Azure y GitHub | Primera vez configurando el proyecto |
+| **[CI_CD_GUIDE.md](CI_CD_GUIDE.md)** | Uso del sistema CI/CD | Cuando necesites hacer deploys |
+
+---
+
+## Comandos Utiles
+
+### Ver estado de infraestructura
+
+```bash
+# Listar clusters AKS
+az aks list -o table
+
+# Listar bases de datos
+az postgres flexible-server list -o table
+
+# Listar resource groups
+az group list --query "[?contains(name, 'jobdirect')]" -o table
+```
+
+### Ver estado de aplicaciones
+
+```bash
+# Conectar a AKS DEV
+az aks get-credentials \
+  --resource-group rg-jobdirect-dev-eastus-01 \
+  --name aks-jobdirect-dev-eastus-01
+
 # Ver pods
 kubectl get pods
 
+# Ver servicios (obtener IP externa)
+kubectl get svc
+
 # Ver logs del backend
-kubectl logs deployment/jobdirect-backend
-
-# Ver logs del frontend
-kubectl logs deployment/jobdirect-app
+kubectl logs deployment/jobdirect-backend -f
 ```
 
-### Acceder a las Aplicaciones
+### Limpiar recursos (importante para no gastar dinero)
 
 ```bash
-# Obtener IP externa del frontend
-kubectl get svc frontend-service
-
-# Acceder en el navegador: http://<EXTERNAL-IP>
-```
-
-### Acceder a Grafana
-
-```bash
-# Obtener IP de Grafana
-kubectl get svc -n monitoring grafana
-
-# Obtener password
-kubectl get secret grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 --decode
-
-# Acceder en el navegador: http://<EXTERNAL-IP>
-# Usuario: admin
-```
-
----
-
-## Limpieza de Recursos
-
-### Eliminar aplicaciones K8s
-
-```bash
-kubectl delete -f kubernetes/jobdirect-backend.yaml
-kubectl delete -f kubernetes/jobdirect-app.yaml
-
-# Eliminar monitoreo (si se instaló)
-helm uninstall prometheus -n monitoring
-helm uninstall grafana -n monitoring
-kubectl delete namespace monitoring
-```
-
-### Eliminar infraestructura Terraform
-
-```bash
+# Eliminar infraestructura DEV
 cd terraform/dev
 terraform destroy
 
-cd ../qa
-terraform destroy
-
-cd ../prod
-terraform destroy
+# Confirmar con "yes"
 ```
 
 ---
 
-### Guía de Lectura Recomendada
+## Glosario
 
-Para nuevos miembros del equipo:
-
-1. **README.md** (este archivo) - Entender la arquitectura general
-2. **INIT_SETUP.md** - Configurar el entorno de trabajo
-3. **CI_CD_USAGE.md** - Aprender a usar el sistema de despliegue
-4. **INTEGRACION_CICD.md** - Comprender cómo se integran los repositorios
-
----
+| Termino | Definicion |
+|---------|------------|
+| **IaC** | Infrastructure as Code - Infraestructura definida en codigo |
+| **AKS** | Azure Kubernetes Service - Kubernetes administrado |
+| **Terraform** | Herramienta para crear infraestructura con codigo |
+| **CI/CD** | Continuous Integration / Continuous Deployment |
+| **Pod** | Unidad minima en Kubernetes (1+ contenedores) |
+| **Deployment** | Objeto K8s que maneja replicas de pods |
+| **Service** | Objeto K8s que expone pods a la red |
+| **Secret** | Objeto K8s para guardar datos sensibles |
+| **Rollout** | Proceso de actualizar pods gradualmente |

@@ -4,7 +4,7 @@ resource "azurerm_postgresql_flexible_server" "postgres_01" {
   location               = azurerm_resource_group.rg_01.location
   version                = "15"
   administrator_login    = "jobdirectadmin"
-  administrator_password = "P@ssw0rd123!"
+  administrator_password = "Proyectos123"
 
   storage_mb = 131072 # 128 GB
   sku_name   = "GP_Standard_D4s_v3"
