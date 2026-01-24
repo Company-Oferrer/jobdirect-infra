@@ -248,7 +248,7 @@ POSTGRES_FQDN=$(terraform output -raw postgres_fqdn)
 
 # Crear secret en Kubernetes
 kubectl create secret generic postgres-secret \
-  --from-literal=connection-string="postgresql://jobdirectadmin:Proyecto123${POSTGRES_FQDN}:5432/jobdirect?sslmode=require"
+  --from-literal=connection-string="postgresql://jobdirectadmin:Proyectos123@${POSTGRES_FQDN}:5432/jobdirect?sslmode=require"
 ```
 
 ### Paso 4: Desplegar Aplicaciones
