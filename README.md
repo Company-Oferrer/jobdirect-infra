@@ -184,7 +184,8 @@ jobdirect-infra/
 | Recurso | DEV | QA | PROD | Razon |
 |---------|-----|-----|------|-------|
 | **Nodos AKS** | 1 | 2 | 3 | PROD necesita alta disponibilidad |
-| **VM Size** | Standard_B2s | Standard_D2s_v3 | Standard_D4s_v3 | Mas CPU/RAM para mas usuarios |
+| **VM Size** | Standard_DC2ds_v3 | Standard_DC2ds_v3 | Standard_DC2ds_v3 | Confidential computing en todos los ambientes |
+| **Region** | Central US | Central US | Central US | Region con disponibilidad de VMs requeridas |
 | **PostgreSQL** | 32 GB | 64 GB | 128 GB | Mas datos en produccion |
 | **Backups** | 7 dias | 14 dias | 35 dias | Mas retencion para compliance |
 | **Geo-Backup** | No | No | Si | Disaster recovery en PROD |
@@ -199,27 +200,58 @@ jobdirect-infra/
 
 ---
 
-## Como funciona el flujo de trabajo?
+## Como iniciar el flujo automatico (paso a paso)
 
-### 1. Desarrollo Local
+Antes de que el CI/CD automatico funcione, hay **2 pasos manuales** que se ejecutan **una sola vez** por ambiente. Esto es necesario porque primero hay que crear la infraestructura donde se van a desplegar las aplicaciones.
+
+### Paso 0: Configurar GitHub Secrets
+
+Antes de ejecutar cualquier workflow, configura los secrets en el repo `jobdirect-infra`:
+
+| Secret | Valor |
+|--------|-------|
+| `AZURE_CREDENTIALS` | JSON del Service Principal (ver [QUICK_START.md](QUICK_START.md)) |
+| `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID de Azure |
+| `DOCKERHUB_USERNAME` | Tu usuario de DockerHub |
+| `POSTGRES_ADMIN_PASSWORD_DEV` | Una password segura para la DB de DEV |
+| `POSTGRES_ADMIN_PASSWORD_QA` | Una password segura para la DB de QA |
+| `POSTGRES_ADMIN_PASSWORD_PROD` | Una password segura para la DB de PROD |
+
+### Paso 1: Ejecutar `Deploy Infrastructure - DEV` (terraform-dev.yml)
+
+**Donde:** GitHub > `jobdirect-infra` > Actions > `Deploy Infrastructure - DEV` > Run workflow
+
+**Que hace:** Usa Terraform para crear en Azure:
+- El **Resource Group** (contenedor de recursos)
+- El **cluster AKS** (Kubernetes donde corren las apps)
+- El **PostgreSQL** (base de datos)
+
+**Por que es manual:** La infraestructura se crea una sola vez. No tiene sentido recrear un cluster de Kubernetes en cada push. Solo se vuelve a ejecutar si cambias algo en los archivos `.tf` (por ejemplo, agregar mas nodos).
+
+### Paso 2: Ejecutar `K8s Deploy` (k8s-deploy.yml)
+
+**Donde:** GitHub > `jobdirect-infra` > Actions > `K8s Deploy` > Run workflow > seleccionar `dev`
+
+**Que hace:** Dentro del cluster AKS que se creo en el Paso 1:
+- Crea el **Secret de PostgreSQL** (connection string para que el backend se conecte a la DB)
+- Aplica los **manifiestos de Kubernetes** (crea los Deployments y Services del frontend y backend)
+
+**Por que es manual:** Necesita que el cluster AKS ya exista (Paso 1). Se ejecuta una sola vez para dejar todo listo. Despues de esto, las actualizaciones de las apps se hacen automaticamente.
+
+**Por que no se puede hacer antes del Paso 1:** Sin el cluster AKS, no hay donde crear los pods ni los secrets. Kubernetes no existe todavia.
+
+### Paso 3: Listo - Todo automatico a partir de aqui
+
+Ahora solo haces push en el repo de la app o del backend:
 
 ```bash
-# El desarrollador trabaja en su maquina
-cd jobdirect-backend
-npm run dev
-
-# Hace cambios y los prueba localmente
-```
-
-### 2. Push a GitHub
-
-```bash
+# En jobdirect-backend o jobdirect-app
 git add .
 git commit -m "feat: nueva funcionalidad"
 git push origin main
 ```
 
-### 3. CI/CD Automatico (DEV)
+Y se dispara automaticamente:
 
 ```
 Push a main
@@ -238,22 +270,45 @@ Push a main
 ┌─────────────────────────────────────┐
 │  GitHub Actions (en infra)          │
 │  1. Conecta a AKS                   │
-│  2. Actualiza deployment            │
-│  3. Espera rollout                  │
+│  2. Actualiza imagen del deployment │
+│  3. Espera rollout completo         │
 └─────────────────────────────────────┘
     │
     ▼
-  DEPLOYED EN DEV
+  NUEVA VERSION LIVE EN DEV
 ```
 
-### 4. Promocion a QA/PROD (Manual)
+### Resumen visual por ambiente
 
-Cuando DEV esta estable, se promueve manualmente:
+```
+                    MANUAL (una sola vez)              AUTOMATICO (cada push)
+                 ┌──────────────────────────┐    ┌──────────────────────────────┐
+  DEV            │ 1. terraform-dev.yml     │    │ git push → CI/CD → deploy    │
+                 │ 2. k8s-deploy.yml (dev)  │ →  │ (se dispara solo)            │
+                 └──────────────────────────┘    └──────────────────────────────┘
 
-1. Ir a GitHub Actions
-2. Ejecutar workflow manual
-3. Seleccionar ambiente (qa/prod)
-4. Confirmar deploy
+                 ┌──────────────────────────┐    ┌──────────────────────────────┐
+  QA             │ 1. terraform-qa.yml      │    │ dockerhub.yml (manual) →     │
+                 │ 2. k8s-deploy.yml (qa)   │ →  │ seleccionar "qa" → deploy    │
+                 └──────────────────────────┘    └──────────────────────────────┘
+
+                 ┌──────────────────────────┐    ┌──────────────────────────────┐
+  PROD           │ 1. terraform-prod.yml    │    │ dockerhub.yml (manual) →     │
+                 │ 2. k8s-deploy.yml (prod) │ →  │ seleccionar "prod" → deploy  │
+                 └──────────────────────────┘    └──────────────────────────────┘
+```
+
+**Nota:** Solo DEV es 100% automatico con cada push. QA y PROD requieren ejecutar manualmente el workflow `dockerhub.yml` en el repo de app/backend (seleccionando el ambiente). Esto es por seguridad: no queremos que un push accidental llegue a produccion.
+
+### Promocion a QA/PROD
+
+Cuando DEV esta estable y quieres promover a QA o PROD:
+
+1. Ir a GitHub Actions en `jobdirect-app` o `jobdirect-backend`
+2. Seleccionar workflow **CD - Deploy to DockerHub**
+3. Click **Run workflow**
+4. Seleccionar ambiente (`qa` o `prod`)
+5. El workflow construye la imagen, la sube a DockerHub, y dispara el deploy en el cluster correspondiente
 
 ---
 

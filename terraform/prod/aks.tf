@@ -1,6 +1,6 @@
 resource "azurerm_resource_group" "rg_01" {
   name     = "rg-jobdirect-prod-eastus-01"
-  location = "West US 3"
+  location = "Central US"
   tags = {
     Project     = "JobDirect"
     Environment = "Production"
@@ -16,7 +16,7 @@ resource "azurerm_kubernetes_cluster" "aks_01" {
   default_node_pool {
     name       = "default"
     node_count = 3
-    vm_size    = "standard_d4s_v3"
+    vm_size    = "Standard_DC2ds_v3"
   }
 
   identity {
