@@ -25,8 +25,8 @@ jobs:
       - name: Get AKS Credentials
         run: |
           az aks get-credentials \
-            --resource-group rg-jobdirect-${{ github.event.client_payload.environment }}-eastus-01 \
-            --name aks-jobdirect-${{ github.event.client_payload.environment }}-eastus-01 \
+            --resource-group rg-jobdirect-${{ github.event.client_payload.environment }}-01 \
+            --name aks-jobdirect-${{ github.event.client_payload.environment }}-01 \
             --overwrite-existing
 
       - name: Deploy Frontend (QA)

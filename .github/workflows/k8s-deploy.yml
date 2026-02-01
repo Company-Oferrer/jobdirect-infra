@@ -34,19 +34,28 @@ jobs:
       - name: Get AKS Credentials
         run: |
           az aks get-credentials \
-            --resource-group rg-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
-            --name aks-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
+            --resource-group rg-jobdirect-${{ github.event.inputs.environment }}-01 \
+            --name aks-jobdirect-${{ github.event.inputs.environment }}-01 \
             --overwrite-existing
 
       - name: Create PostgreSQL Secret
         run: |
-          CONNECTION_STRING=$(az postgres flexible-server show \
-            --resource-group rg-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
-            --name psql-jobdirect-${{ github.event.inputs.environment }}-eastus-01 \
+          POSTGRES_FQDN=$(az postgres flexible-server show \
+            --resource-group rg-jobdirect-${{ github.event.inputs.environment }}-01 \
+            --name pg-jobdirect-${{ github.event.inputs.environment }} \
             --query "fullyQualifiedDomainName" -o tsv)
 
+          PASS=""
+          if [ "${{ github.event.inputs.environment }}" = "dev" ]; then
+            PASS="${{ secrets.POSTGRES_ADMIN_PASSWORD_DEV }}"
+          elif [ "${{ github.event.inputs.environment }}" = "qa" ]; then
+            PASS="${{ secrets.POSTGRES_ADMIN_PASSWORD_QA }}"
+          elif [ "${{ github.event.inputs.environment }}" = "prod" ]; then
+            PASS="${{ secrets.POSTGRES_ADMIN_PASSWORD_PROD }}"
+          fi
+
           kubectl create secret generic postgres-secret \
-            --from-literal=connection-string="postgresql://jobdirectadmin:P@ssw0rd123!@${CONNECTION_STRING}:5432/jobdirect?sslmode=require" \
+            --from-literal=connection-string="postgresql://jobdirectadmin:${PASS}@${POSTGRES_FQDN}:5432/jobdirect" \
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Backend

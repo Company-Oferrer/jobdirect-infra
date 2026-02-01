@@ -238,8 +238,8 @@ az postgres flexible-server list --query "[?contains(name, 'jobdirect')]" -o tab
 
 ```bash
 az aks get-credentials \
-  --resource-group rg-jobdirect-dev-eastus-01 \
-  --name aks-jobdirect-dev-eastus-01
+  --resource-group rg-jobdirect-dev-01 \
+  --name aks-jobdirect-dev-01
 
 # Verificar conexion
 kubectl get nodes
@@ -257,9 +257,9 @@ Las aplicaciones necesitan conectarse a la base de datos. Creamos un Secret en K
 
 ```bash
 # Obtener el FQDN de PostgreSQL (desde Terraform o Azure Portal)
-# Ejemplo: psql-jobdirect-dev-eastus-01.postgres.database.azure.com
+# Ejemplo: psql-jobdirect-dev-01.postgres.database.azure.com
 
-POSTGRES_FQDN=psql-jobdirect-dev-eastus-01.postgres.database.azure.com (Could change)
+POSTGRES_FQDN=psql-jobdirect-dev-01.postgres.database.azure.com (Could change)
 
 kubectl create secret generic postgres-secret \
   --from-literal=connection-string="postgresql://jobdirectadmin:TU_PASSWORD@pg-jobdirect-dev.postgres.database.azure.com:5432/jobdirect"

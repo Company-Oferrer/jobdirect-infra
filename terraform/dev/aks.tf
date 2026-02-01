@@ -1,5 +1,5 @@
 resource "azurerm_resource_group" "rg_01" {
-  name     = "rg-jobdirect-dev-eastus-01"
+  name     = "rg-jobdirect-dev-01"
   location = "Central US"
   tags = {
     Project     = "JobDirect"
@@ -8,7 +8,7 @@ resource "azurerm_resource_group" "rg_01" {
 }
 
 resource "azurerm_kubernetes_cluster" "aks_01" {
-  name                = "aks-jobdirect-dev-eastus-01"
+  name                = "aks-jobdirect-dev-01"
   location            = azurerm_resource_group.rg_01.location
   resource_group_name = azurerm_resource_group.rg_01.name
   dns_prefix          = "aksdns"

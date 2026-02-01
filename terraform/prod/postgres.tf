@@ -1,5 +1,5 @@
 resource "azurerm_postgresql_flexible_server" "postgres_01" {
-  name                   = "psql-jobdirect-prod-eastus-01"
+  name                   = "pg-jobdirect-prod"
   resource_group_name    = azurerm_resource_group.rg_01.name
   location               = azurerm_resource_group.rg_01.location
   version                = "15"

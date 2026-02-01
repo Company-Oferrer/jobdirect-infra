@@ -346,8 +346,8 @@ kubectl get pods -w  # -w = watch (actualiza en tiempo real)
 ```bash
 # Conectar a AKS
 az aks get-credentials \
-  --resource-group rg-jobdirect-dev-eastus-01 \
-  --name aks-jobdirect-dev-eastus-01
+  --resource-group rg-jobdirect-dev-01 \
+  --name aks-jobdirect-dev-01
 
 # Ver pods
 kubectl get pods

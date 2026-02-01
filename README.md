@@ -341,8 +341,8 @@ az group list --query "[?contains(name, 'jobdirect')]" -o table
 ```bash
 # Conectar a AKS DEV
 az aks get-credentials \
-  --resource-group rg-jobdirect-dev-eastus-01 \
-  --name aks-jobdirect-dev-eastus-01
+  --resource-group rg-jobdirect-dev-01 \
+  --name aks-jobdirect-dev-01
 
 # Ver pods
 kubectl get pods
