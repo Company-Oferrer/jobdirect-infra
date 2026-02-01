@@ -8,6 +8,10 @@ on:
     paths:
       - 'terraform/dev/**'
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   terraform-dev:
     runs-on: ubuntu-latest

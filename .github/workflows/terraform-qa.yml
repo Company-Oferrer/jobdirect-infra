@@ -8,6 +8,10 @@ on:
     paths:
       - 'terraform/qa/**'
 
+permissions:
+  actions: write
+  contents: read
+
 jobs:
   terraform-qa:
     runs-on: ubuntu-latest
