@@ -86,9 +86,12 @@ Este repositorio contiene **toda la infraestructura** necesaria para ejecutar Jo
 
 **Archivos principales:**
 ```
-provider.tf  → Configura la conexion a Azure
-aks.tf       → Define el cluster de Kubernetes
-postgres.tf  → Define la base de datos
+provider.tf           → Configura la conexion a Azure
+aks.tf                → Define el cluster de Kubernetes
+postgres.tf           → Define la base de datos
+variables.tf          → Define variables sensibles (subscription_id, passwords)
+terraform.tfvars      → Valores locales de las variables (gitignored)
+terraform.tfvars.example → Plantilla de ejemplo para las variables
 ```
 
 ### Azure Kubernetes Service (AKS)
@@ -138,15 +141,22 @@ jobdirect-infra/
 │   ├── dev/                      # Ambiente de desarrollo
 │   │   ├── provider.tf           # Conexion a Azure
 │   │   ├── aks.tf                # Cluster Kubernetes (1 nodo)
-│   │   └── postgres.tf           # Base de datos (32GB)
+│   │   ├── postgres.tf           # Base de datos (32GB)
+│   │   ├── variables.tf          # Variables sensibles
+│   │   ├── terraform.tfvars.example  # Plantilla de variables
+│   │   └── terraform.tfvars      # Valores locales (gitignored)
 │   ├── qa/                       # Ambiente de QA
 │   │   ├── provider.tf
 │   │   ├── aks.tf                # Cluster Kubernetes (2 nodos)
-│   │   └── postgres.tf           # Base de datos (64GB)
+│   │   ├── postgres.tf           # Base de datos (64GB)
+│   │   ├── variables.tf          # Variables sensibles
+│   │   └── terraform.tfvars.example
 │   └── prod/                     # Ambiente de produccion
 │       ├── provider.tf
 │       ├── aks.tf                # Cluster Kubernetes (3 nodos)
-│       └── postgres.tf           # Base de datos (128GB)
+│       ├── postgres.tf           # Base de datos (128GB)
+│       ├── variables.tf          # Variables sensibles
+│       └── terraform.tfvars.example
 │
 ├── kubernetes/                   # Manifiestos de Kubernetes
 │   ├── jobdirect-app.yaml        # Deployment del frontend

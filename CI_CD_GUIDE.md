@@ -134,8 +134,11 @@ Mismos secrets que arriba.
 | Secret | Valor | Para que |
 |--------|-------|----------|
 | `AZURE_CREDENTIALS` | JSON del Service Principal | Conectar a Azure |
-| `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID | Referencia |
+| `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID | Usado por Terraform workflows |
 | `DOCKERHUB_USERNAME` | Tu usuario | Saber que imagen bajar |
+| `POSTGRES_ADMIN_PASSWORD_DEV` | Password segura | Terraform crea PostgreSQL DEV |
+| `POSTGRES_ADMIN_PASSWORD_QA` | Password segura | Terraform crea PostgreSQL QA |
+| `POSTGRES_ADMIN_PASSWORD_PROD` | Password segura | Terraform crea PostgreSQL PROD |
 
 ---
 
@@ -395,6 +398,10 @@ Antes de usar el CI/CD, verifica:
 - [ ] `INFRA_DEPLOY_TOKEN` configurado en jobdirect-backend
 - [ ] `DOCKERHUB_USERNAME` y `DOCKERHUB_TOKEN` en app/backend
 - [ ] `AZURE_CREDENTIALS` configurado en jobdirect-infra
+- [ ] `AZURE_SUBSCRIPTION_ID` configurado en jobdirect-infra
+- [ ] `POSTGRES_ADMIN_PASSWORD_DEV` configurado en jobdirect-infra
+- [ ] `POSTGRES_ADMIN_PASSWORD_QA` configurado en jobdirect-infra (si se usa QA)
+- [ ] `POSTGRES_ADMIN_PASSWORD_PROD` configurado en jobdirect-infra (si se usa PROD)
 - [ ] Infraestructura creada (AKS corriendo)
 - [ ] Deployments iniciales creados:
   ```bash

@@ -51,41 +51,45 @@ az account set --subscription "TU_SUBSCRIPTION_ID"
 
 ---
 
-## Paso 2: Actualizar Archivos Terraform
+## Paso 2: Configurar Variables de Terraform
 
 ### Por que necesitamos esto?
 
-Terraform necesita saber **a cual suscripcion de Azure conectarse**. Esto se configura en los archivos `provider.tf`.
+Terraform necesita saber **a cual suscripcion de Azure conectarse** y las **credenciales de la base de datos**. Estos valores sensibles se configuran en archivos `terraform.tfvars` que **nunca se suben al repositorio** (estan en `.gitignore`).
 
-### 2.1 Editar los archivos provider.tf
+### 2.1 Crear archivos terraform.tfvars
 
-Hay 3 archivos que editar (uno por ambiente):
-
-```
-terraform/dev/provider.tf
-terraform/qa/provider.tf
-terraform/prod/provider.tf
-```
-
-### 2.2 Buscar y reemplazar
-
-En cada archivo, busca esta linea:
-```hcl
-subscription_id = "VALOR_ACTUAL"
-```
-
-Reemplaza con tu Subscription ID:
-```hcl
-subscription_id = "TU_SUBSCRIPTION_ID"
-```
-
-### 2.3 Verificar cambios
+Cada ambiente tiene un archivo de ejemplo (`terraform.tfvars.example`). Copia y completa:
 
 ```bash
-grep "subscription_id" terraform/*/provider.tf
+# Para DEV
+cp terraform/dev/terraform.tfvars.example terraform/dev/terraform.tfvars
+
+# Para QA
+cp terraform/qa/terraform.tfvars.example terraform/qa/terraform.tfvars
+
+# Para PROD
+cp terraform/prod/terraform.tfvars.example terraform/prod/terraform.tfvars
 ```
 
-Deberia mostrar tu ID en los 3 archivos.
+### 2.2 Editar cada terraform.tfvars
+
+Abri cada archivo y completa con tus valores reales:
+
+```hcl
+subscription_id         = "TU_SUBSCRIPTION_ID"
+postgres_admin_password = "UNA_PASSWORD_SEGURA"
+```
+
+**IMPORTANTE:** Usa passwords diferentes para cada ambiente y nunca subas estos archivos a git.
+
+### 2.3 Verificar
+
+```bash
+cat terraform/dev/terraform.tfvars
+```
+
+Deberia mostrar tu subscription ID y password (solo localmente).
 
 ---
 
@@ -151,23 +155,31 @@ Son variables encriptadas que GitHub Actions puede usar. Nunca aparecen en logs 
 
 ### 4.2 Crear los secrets necesarios
 
-Crea estos 3 secrets:
+Crea estos secrets:
 
 | Name | Value | Descripcion |
 |------|-------|-------------|
 | `AZURE_CREDENTIALS` | (pegar todo el JSON del paso 3) | Credenciales del Service Principal |
-| `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID | Para referencia en workflows |
+| `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID | Usado por Terraform en los workflows |
 | `DOCKERHUB_USERNAME` | Tu usuario de DockerHub | Para push de imagenes |
+| `POSTGRES_ADMIN_PASSWORD_DEV` | Password segura para DEV | Usada por Terraform para crear PostgreSQL DEV |
+| `POSTGRES_ADMIN_PASSWORD_QA` | Password segura para QA | Usada por Terraform para crear PostgreSQL QA |
+| `POSTGRES_ADMIN_PASSWORD_PROD` | Password segura para PROD | Usada por Terraform para crear PostgreSQL PROD |
+
+**IMPORTANTE:** Usa passwords diferentes para cada ambiente. Los workflows de Terraform pasan estos valores via `-var` flags, asi que nunca quedan en el codigo.
 
 ### 4.3 Verificar
 
 Deberia verse asi en GitHub:
 
 ```
-Repository secrets (3)
+Repository secrets (6)
 ├── AZURE_CREDENTIALS
 ├── AZURE_SUBSCRIPTION_ID
-└── DOCKERHUB_USERNAME
+├── DOCKERHUB_USERNAME
+├── POSTGRES_ADMIN_PASSWORD_DEV
+├── POSTGRES_ADMIN_PASSWORD_QA
+└── POSTGRES_ADMIN_PASSWORD_PROD
 ```
 
 ---
@@ -250,7 +262,7 @@ Las aplicaciones necesitan conectarse a la base de datos. Creamos un Secret en K
 POSTGRES_FQDN=psql-jobdirect-dev-eastus-01.postgres.database.azure.com (Could change)
 
 kubectl create secret generic postgres-secret \
-  --from-literal=connection-string="postgresql://jobdirectadmin:Proyectos123@pg-jobdirect-dev.postgres.database.azure.com:5432/jobdirect"
+  --from-literal=connection-string="postgresql://jobdirectadmin:TU_PASSWORD@pg-jobdirect-dev.postgres.database.azure.com:5432/jobdirect"
 ```
 
 ### 7.2 Desplegar las aplicaciones
