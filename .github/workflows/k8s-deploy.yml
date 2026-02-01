@@ -1,4 +1,4 @@
-name: Deploy Applications to Kubernetes
+﻿name: Deploy Applications to Kubernetes
 
 on:
   workflow_dispatch:
@@ -92,3 +92,24 @@ jobs:
         run: |
           chmod +x kubernetes/setup-monitoring.sh
           ./kubernetes/setup-monitoring.sh ${{ github.event.inputs.environment }}
+
+      - name: Public URLs
+        run: |
+          FRONTEND_IP=$(kubectl get svc frontend-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          FRONTEND_HOST=$(kubectl get svc frontend-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+          BACKEND_IP=$(kubectl get svc backend-service -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+          BACKEND_HOST=$(kubectl get svc backend-service -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+
+          FRONTEND_URL=""
+          BACKEND_URL=""
+
+          if [ -n "$FRONTEND_IP" ]; then FRONTEND_URL="http://${FRONTEND_IP}"; fi
+          if [ -z "$FRONTEND_URL" ] && [ -n "$FRONTEND_HOST" ]; then FRONTEND_URL="http://${FRONTEND_HOST}"; fi
+
+          if [ -n "$BACKEND_IP" ]; then BACKEND_URL="http://${BACKEND_IP}:3000"; fi
+          if [ -z "$BACKEND_URL" ] && [ -n "$BACKEND_HOST" ]; then BACKEND_URL="http://${BACKEND_HOST}:3000"; fi
+
+          echo "## 🌐 Public URLs - ${{ github.event.inputs.environment }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Frontend:** ${FRONTEND_URL:-Pendiente}" >> $GITHUB_STEP_SUMMARY
+          echo "**Backend:** ${BACKEND_URL:-Pendiente}" >> $GITHUB_STEP_SUMMARY
