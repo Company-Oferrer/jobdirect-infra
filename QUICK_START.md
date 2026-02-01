@@ -1,4 +1,4 @@
-# Quick Start - Configuracion Inicial
+﻿# Quick Start - Configuracion Inicial
 
 Esta guia te lleva paso a paso para configurar el proyecto desde cero.
 
@@ -131,12 +131,12 @@ El comando genera un JSON como este:
 
 ### Por que estos campos?
 
-| Campo | Que es |
-|-------|--------|
-| `clientId` | ID de la "cuenta de servicio" |
+| Campo | Que es                               |
+|-------|--------------------------------------|
+| `clientId` | ID de la "cuenta de servicio"        |
 | `clientSecret` | "Contraseña" de la cuenta (SECRETO!) |
-| `subscriptionId` | Tu suscripcion Azure |
-| `tenantId` | Tu directorio Azure AD |
+| `subscriptionId` | Tu suscripcion Azure                 |
+| `tenantId` | Tu directorio Azure AD               |
 
 ---
 
@@ -162,6 +162,42 @@ Crea estos secrets:
 | `AZURE_CREDENTIALS` | (pegar todo el JSON del paso 3) | Credenciales del Service Principal |
 | `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID | Usado por Terraform en los workflows |
 | `DOCKERHUB_USERNAME` | Tu usuario de DockerHub | Para push de imagenes |
+| `INFRA_DEPLOY_TOKEN` | PAT con scopes `repo` + `workflow` | Disparar workflows desde/ hacia el repo de infra |
+| `POSTGRES_ADMIN_PASSWORD_DEV` | Password segura para DEV | Usada por Terraform para crear PostgreSQL DEV |
+| `POSTGRES_ADMIN_PASSWORD_QA` | Password segura para QA | Usada por Terraform para crear PostgreSQL QA |
+| `POSTGRES_ADMIN_PASSWORD_PROD` | Password segura para PROD | Usada por Terraform para crear PostgreSQL PROD |
+
+**IMPORTANTE:** Usa passwords diferentes para cada ambiente. Los workflows de Terraform pasan estos valores via `-var` flags, asi que nunca quedan en el codigo.
+
+**IMPORTANTE 2:** Nuestra organizacion no permite habilitar `Read and write permissions` para `GITHUB_TOKEN`.  
+Por eso el **PAT (`INFRA_DEPLOY_TOKEN`) es obligatorio**.
+
+### 4.3 Verificar
+
+Deberia verse asi en GitHub:
+
+```
+Repository secrets (7)
+* AZURE_CREDENTIALS
+* AZURE_SUBSCRIPTION_ID
+* DOCKERHUB_USERNAME
+* INFRA_DEPLOY_TOKEN
+* POSTGRES_ADMIN_PASSWORD_DEV
+* POSTGRES_ADMIN_PASSWORD_QA
+* POSTGRES_ADMIN_PASSWORD_PROD
+```
+
+### 4.4 Configurar el mismo token en app y backend
+
+Este mismo PAT debe guardarse como `INFRA_DEPLOY_TOKEN` en:
+
+- `jobdirect-app`
+- `jobdirect-backend`
+
+------|-------|-------------|
+| `AZURE_CREDENTIALS` | (pegar todo el JSON del paso 3) | Credenciales del Service Principal |
+| `AZURE_SUBSCRIPTION_ID` | Tu Subscription ID | Usado por Terraform en los workflows |
+| `DOCKERHUB_USERNAME` | Tu usuario de DockerHub | Para push de imagenes |
 | `POSTGRES_ADMIN_PASSWORD_DEV` | Password segura para DEV | Usada por Terraform para crear PostgreSQL DEV |
 | `POSTGRES_ADMIN_PASSWORD_QA` | Password segura para QA | Usada por Terraform para crear PostgreSQL QA |
 | `POSTGRES_ADMIN_PASSWORD_PROD` | Password segura para PROD | Usada por Terraform para crear PostgreSQL PROD |
@@ -174,12 +210,12 @@ Deberia verse asi en GitHub:
 
 ```
 Repository secrets (6)
-├── AZURE_CREDENTIALS
-├── AZURE_SUBSCRIPTION_ID
-├── DOCKERHUB_USERNAME
-├── POSTGRES_ADMIN_PASSWORD_DEV
-├── POSTGRES_ADMIN_PASSWORD_QA
-└── POSTGRES_ADMIN_PASSWORD_PROD
+â”œâ”€â”€ AZURE_CREDENTIALS
+â”œâ”€â”€ AZURE_SUBSCRIPTION_ID
+â”œâ”€â”€ DOCKERHUB_USERNAME
+â”œâ”€â”€ POSTGRES_ADMIN_PASSWORD_DEV
+â”œâ”€â”€ POSTGRES_ADMIN_PASSWORD_QA
+â””â”€â”€ POSTGRES_ADMIN_PASSWORD_PROD
 ```
 
 ---
@@ -339,3 +375,4 @@ kubectl logs NOMBRE_DEL_POD
 ## Siguiente paso
 
 Una vez que la infraestructura esta lista, configura el CI/CD siguiendo **[CI_CD_GUIDE.md](CI_CD_GUIDE.md)**.
+

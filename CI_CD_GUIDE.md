@@ -93,9 +93,9 @@ Despues de que CI pasa exitosamente:
 
 ### Paso 1: Crear Personal Access Token (PAT)
 
-**Que es?** Un token que permite a los repos de apps disparar workflows en el repo de infra.
+**Que es?** Un token que permite a los repos de apps disparar workflows en el repo de infra y al propio repo de infra ejecutar `workflow_dispatch`.
 
-**Por que lo necesitamos?** GitHub no permite que un workflow dispare otro en un repo diferente sin autorizacion explicita.
+**Por que lo necesitamos?** En nuestra organizacion no esta habilitado el permiso de escritura del `GITHUB_TOKEN`, por eso debemos usar un PAT con permisos.
 
 #### Como crearlo:
 
@@ -104,7 +104,7 @@ Despues de que CI pasa exitosamente:
 3. Click **Generate new token (classic)**
 4. Configurar:
    - **Note:** `jobdirect-infra-deploy`
-   - **Expiration:** 90 days
+   - **Expiration:** 90 days (o mas)
    - **Scopes:**
      - ✅ `repo` (todos los sub-permisos)
      - ✅ `workflow`
@@ -123,13 +123,15 @@ Ir a Settings > Secrets > Actions > New repository secret:
 |--------|-------|----------|
 | `DOCKERHUB_USERNAME` | Tu usuario | Push de imagenes |
 | `DOCKERHUB_TOKEN` | Token de DockerHub | Autenticacion |
-| `INFRA_DEPLOY_TOKEN` | PAT del paso 1 | Disparar deploy |
+| `INFRA_DEPLOY_TOKEN` | PAT del paso 1 | Disparar deploy en repo infra |
 
 #### En jobdirect-backend:
 
 Mismos secrets que arriba.
 
 #### En jobdirect-infra:
+
+Este mismo PAT se guarda como `INFRA_DEPLOY_TOKEN` porque el repo de infra dispara su propio workflow `k8s-deploy.yml` despues de aplicar Terraform.
 
 | Secret | Valor | Para que |
 |--------|-------|----------|
