@@ -4,7 +4,7 @@ resource "azurerm_postgresql_flexible_server" "postgres_01" {
   location               = azurerm_resource_group.rg_01.location
   version                = "15"
   administrator_login    = "jobdirectadmin"
-  administrator_password = "Proyectos123"
+  administrator_password = var.postgres_admin_password
 
   storage_mb = 131072 # 128 GB
   sku_name   = "GP_Standard_D4s_v3"
@@ -38,6 +38,6 @@ output "postgres_fqdn" {
 }
 
 output "postgres_connection_string" {
-  value     = "postgresql://jobdirectadmin:P@ssw0rd123!@${azurerm_postgresql_flexible_server.postgres_01.fqdn}:5432/jobdirect?sslmode=require"
+  value     = "postgresql://jobdirectadmin:${var.postgres_admin_password}@${azurerm_postgresql_flexible_server.postgres_01.fqdn}:5432/jobdirect?sslmode=require"
   sensitive = true
 }

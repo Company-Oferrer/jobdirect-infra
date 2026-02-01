@@ -8,7 +8,7 @@ resource "azurerm_postgresql_flexible_server" "postgres_01" {
 
   version                = "15"
   administrator_login    = "jobdirectadmin"
-  administrator_password = "Proyectos123"
+  administrator_password = var.postgres_admin_password
 
   sku_name = "B_Standard_B1ms"
 
@@ -45,7 +45,7 @@ output "postgres_fqdn" {
 }
 
 output "postgres_connection_string" {
-  value     = "postgresql://jobdirectadmin:Proyectos123@${azurerm_postgresql_flexible_server.postgres_01.fqdn}:5432/jobdirect?sslmode=require"
+  value     = "postgresql://jobdirectadmin:${var.postgres_admin_password}@${azurerm_postgresql_flexible_server.postgres_01.fqdn}:5432/jobdirect?sslmode=require"
   sensitive = true
 }
 

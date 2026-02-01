@@ -5,6 +5,7 @@
 **/terraform.tfstate.backup
 **/.terraform.tfstate.lock.info
 **/outputs.json
+**/terraform.tfvars
 
 # Kubernetes
 **/kubeconfig
