@@ -202,7 +202,7 @@ jobdirect-infra/
 
 ## Como iniciar el flujo automatico (paso a paso)
 
-Antes de que el CI/CD automatico funcione, hay **2 pasos manuales** que se ejecutan **una sola vez** por ambiente. Esto es necesario porque primero hay que crear la infraestructura donde se van a desplegar las aplicaciones.
+Antes de que el CI/CD automatico funcione, hay **1 paso manual** que se ejecuta **una sola vez** por ambiente. Esto es necesario porque primero hay que crear la infraestructura donde se van a desplegar las aplicaciones.
 
 ### Paso 0: Configurar GitHub Secrets
 
@@ -225,22 +225,13 @@ Antes de ejecutar cualquier workflow, configura los secrets en el repo `jobdirec
 - El **Resource Group** (contenedor de recursos)
 - El **cluster AKS** (Kubernetes donde corren las apps)
 - El **PostgreSQL** (base de datos)
+- **Automaticamente** dispara `k8s-deploy.yml` que configura los manifiestos de Kubernetes (Deployments, Services, Secrets de PostgreSQL)
 
 **Por que es manual:** La infraestructura se crea una sola vez. No tiene sentido recrear un cluster de Kubernetes en cada push. Solo se vuelve a ejecutar si cambias algo en los archivos `.tf` (por ejemplo, agregar mas nodos).
 
-### Paso 2: Ejecutar `K8s Deploy` (k8s-deploy.yml)
+> **Nota:** Anteriormente se necesitaba ejecutar `k8s-deploy.yml` manualmente como segundo paso. Ahora se dispara automaticamente al finalizar el terraform apply.
 
-**Donde:** GitHub > `jobdirect-infra` > Actions > `K8s Deploy` > Run workflow > seleccionar `dev`
-
-**Que hace:** Dentro del cluster AKS que se creo en el Paso 1:
-- Crea el **Secret de PostgreSQL** (connection string para que el backend se conecte a la DB)
-- Aplica los **manifiestos de Kubernetes** (crea los Deployments y Services del frontend y backend)
-
-**Por que es manual:** Necesita que el cluster AKS ya exista (Paso 1). Se ejecuta una sola vez para dejar todo listo. Despues de esto, las actualizaciones de las apps se hacen automaticamente.
-
-**Por que no se puede hacer antes del Paso 1:** Sin el cluster AKS, no hay donde crear los pods ni los secrets. Kubernetes no existe todavia.
-
-### Paso 3: Listo - Todo automatico a partir de aqui
+### Paso 2: Listo - Todo automatico a partir de aqui
 
 Ahora solo haces push en el repo de la app o del backend:
 
@@ -283,18 +274,18 @@ Push a main
 ```
                     MANUAL (una sola vez)              AUTOMATICO (cada push)
                  ┌──────────────────────────┐    ┌──────────────────────────────┐
-  DEV            │ 1. terraform-dev.yml     │    │ git push → CI/CD → deploy    │
-                 │ 2. k8s-deploy.yml (dev)  │ →  │ (se dispara solo)            │
+  DEV            │ terraform-dev.yml        │    │ git push → CI/CD → deploy    │
+                 │ (auto-dispara k8s-deploy)│ →  │ (se dispara solo)            │
                  └──────────────────────────┘    └──────────────────────────────┘
 
                  ┌──────────────────────────┐    ┌──────────────────────────────┐
-  QA             │ 1. terraform-qa.yml      │    │ dockerhub.yml (manual) →     │
-                 │ 2. k8s-deploy.yml (qa)   │ →  │ seleccionar "qa" → deploy    │
+  QA             │ terraform-qa.yml         │    │ dockerhub.yml (manual) →     │
+                 │ (auto-dispara k8s-deploy)│ →  │ seleccionar "qa" → deploy    │
                  └──────────────────────────┘    └──────────────────────────────┘
 
                  ┌──────────────────────────┐    ┌──────────────────────────────┐
-  PROD           │ 1. terraform-prod.yml    │    │ dockerhub.yml (manual) →     │
-                 │ 2. k8s-deploy.yml (prod) │ →  │ seleccionar "prod" → deploy  │
+  PROD           │ terraform-prod.yml       │    │ dockerhub.yml (manual) →     │
+                 │ (auto-dispara k8s-deploy)│ →  │ seleccionar "prod" → deploy  │
                  └──────────────────────────┘    └──────────────────────────────┘
 ```
 

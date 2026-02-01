@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: backend
-        image: companyoferrer/jobdirect-backend:latest
+        image: jhosetdev/jobdirect-backend:latest
         ports:
         - containerPort: 3000
         env:

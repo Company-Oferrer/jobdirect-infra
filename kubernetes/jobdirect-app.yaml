@@ -21,7 +21,7 @@ spec:
     spec:
       containers:
       - name: frontend
-        image: companyoferrer/jobdirect-app:latest
+        image: jhosetdev/jobdirect-app:latest
         ports:
         - containerPort: 80
         env:

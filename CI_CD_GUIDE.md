@@ -62,7 +62,7 @@ Despues de que CI pasa exitosamente:
 │   │ ┌────────────────────────────────────────┐   │                  │
 │   │ │ az login (conectar a Azure)            │   │                  │
 │   │ │ az aks get-credentials (conectar a K8s)│   │                  │
-│   │ │ kubectl set image (actualizar pods)    │   │                  │
+│   │ │ kubectl apply (actualizar pods)         │   │                  │
 │   │ │ kubectl rollout status (esperar)       │   │                  │
 │   │ └────────────────────────────────────────┘   │                  │
 │   └──────────────────────────────────────────────┘                  │

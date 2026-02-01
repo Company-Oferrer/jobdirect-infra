@@ -59,10 +59,16 @@ jobs:
             --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Deploy Backend
-        run: kubectl apply -f kubernetes/jobdirect-backend.yaml
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          sed "s|jhosetdev/jobdirect-backend:latest|${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-backend:${ENV}|g" \
+            kubernetes/jobdirect-backend.yaml | kubectl apply -f -
 
       - name: Deploy Frontend
-        run: kubectl apply -f kubernetes/jobdirect-app.yaml
+        run: |
+          ENV="${{ github.event.inputs.environment }}"
+          sed "s|jhosetdev/jobdirect-app:latest|${{ secrets.DOCKERHUB_USERNAME }}/jobdirect-app:${ENV}|g" \
+            kubernetes/jobdirect-app.yaml | kubectl apply -f -
 
       - name: Wait for Deployments
         run: |
