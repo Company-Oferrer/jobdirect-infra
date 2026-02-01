@@ -19,7 +19,7 @@ helm install prometheus prometheus-community/prometheus --namespace monitoring
 
 # 3. Exponer Prometheus con LoadBalancer
 echo "Exponiendo Prometheus..."
-kubectl patch svc prometheus-server -n monitoring -p '{"spec": {"type": "LoadBalancer"}}'
+kubectl patch svc prometheus-server -n monitoring -p '{"spec": {"type": "ClusterIP"}}'
 
 # 4. Instalar Grafana
 echo "Instalando Grafana..."
