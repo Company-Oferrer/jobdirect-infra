@@ -17,6 +17,10 @@ helm repo add prometheus-community https://prometheus-community.github.io/helm-c
 helm repo add grafana https://grafana.github.io/helm-charts || true
 helm repo update
 
+echo "→ Limpiando webhooks residuales (si existen)"
+kubectl delete validatingwebhookconfiguration monitoring-kube-prometheus-admission 2>/dev/null || true
+kubectl delete mutatingwebhookconfiguration monitoring-kube-prometheus-admission 2>/dev/null || true
+
 echo "→ FASE 1: instalar kube-prometheus-stack SIN webhooks"
 helm upgrade --install $RELEASE prometheus-community/kube-prometheus-stack \
   -n $NAMESPACE \
