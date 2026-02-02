@@ -1,0 +1,19 @@
+alertmanager:
+  enabled: true
+  config:
+    global:
+      smtp_smarthost: 'smtp.gmail.com:587'
+      smtp_from: 'colocar_correo'
+      smtp_auth_username: 'colocar_correo'
+      smtp_auth_password: 'colocar_password'
+      smtp_require_tls: true
+    route:
+      receiver: 'email-admin'
+      group_wait: 5s
+      group_interval: 10s
+      repeat_interval: 4h
+    receivers:
+      - name: 'email-admin'
+        email_configs:
+          - to: 'colocar_destinario'
+            send_resolved: true
