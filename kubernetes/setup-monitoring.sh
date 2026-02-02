@@ -15,7 +15,7 @@ kubectl create namespace monitoring
 echo "Instalando Prometheus..."
 helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
 helm repo update
-helm install prometheus prometheus-community/prometheus --namespace monitoring
+helm install prometheus prometheus-community/prometheus --namespace monitoring -f values-dev.yaml
 
 # 3. Exponer Prometheus con LoadBalancer
 echo "Exponiendo Prometheus..."
@@ -44,6 +44,10 @@ echo ""
 echo "=== Esperando asignación de IPs externas (esto puede tomar 2-3 minutos) ==="
 sleep 30
 kubectl get svc -n monitoring
+
+# 8. Aplicar reglas de alerta
+echo "Aplicando reglas de alerta..."
+kubectl apply -f jobdirect-alerts.yaml
 
 echo ""
 echo "=== Configuración completada ==="
