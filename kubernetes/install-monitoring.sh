@@ -20,7 +20,7 @@ helm repo update
 echo "→ FASE 1: instalar kube-prometheus-stack SIN webhooks"
 helm upgrade --install $RELEASE prometheus-community/kube-prometheus-stack \
   -n $NAMESPACE \
-  -f alertmanager-values.yaml \
+  -f values-dev.yaml \
   --set prometheusOperator.admissionWebhooks.enabled=false \
   --wait=false
 
@@ -32,7 +32,7 @@ kubectl rollout status deployment/$RELEASE-kube-prometheus-operator \
 echo "→ FASE 2: habilitando webhooks (upgrade limpio)"
 helm upgrade $RELEASE prometheus-community/kube-prometheus-stack \
   -n $NAMESPACE \
-  -f alertmanager-values.yaml
+  -f values-dev.yaml
 
 echo "→ Esperando Prometheus..."
 kubectl wait --for=condition=Ready pod \
@@ -53,6 +53,7 @@ echo ""
 echo "=== Credenciales Grafana ==="
 echo "Usuario: admin"
 echo -n "Password: "
+
 kubectl get secret $RELEASE-grafana -n $NAMESPACE \
   -o jsonpath="{.data.admin-password}" | base64 --decode
 echo ""
