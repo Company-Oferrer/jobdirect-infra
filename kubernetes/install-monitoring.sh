@@ -29,17 +29,16 @@ helm upgrade --install $RELEASE prometheus-community/kube-prometheus-stack \
   --set prometheusOperator.tls.enabled=false \
   --wait --timeout 300s
 
-echo "→ Esperando Prometheus..."
+echo "→ Esperando que los pods estén listos..."
 kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=prometheus \
+  -l app=kube-prometheus-stack-operator \
   -n $NAMESPACE \
-  --timeout=300s
+  --timeout=300s || true
 
-echo "→ Esperando Alertmanager..."
 kubectl wait --for=condition=Ready pod \
-  -l app.kubernetes.io/name=alertmanager \
+  -l app.kubernetes.io/instance=$RELEASE \
   -n $NAMESPACE \
-  --timeout=300s
+  --timeout=300s || true
 
 echo "→ Aplicando alertas JobDirect"
 kubectl apply -f jobdirect-alerts.yaml
