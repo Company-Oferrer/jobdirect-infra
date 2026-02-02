@@ -44,6 +44,9 @@ kubectl wait --for=condition=Ready pod \
 echo "→ Aplicando alertas JobDirect"
 kubectl apply -f jobdirect-alerts.yaml
 
+echo "→ Exponiendo Grafana con IP pública..."
+kubectl patch svc $RELEASE-grafana -n $NAMESPACE -p '{"spec": {"type": "LoadBalancer"}}'
+
 echo ""
 echo "=== Credenciales Grafana ==="
 echo "Usuario: admin"
@@ -54,11 +57,12 @@ kubectl get secret $RELEASE-grafana -n $NAMESPACE \
 echo ""
 
 echo ""
-echo "=== Accesos locales ==="
-echo "Grafana:"
-echo " kubectl port-forward svc/$RELEASE-grafana -n $NAMESPACE 3000:80"
-echo " → http://localhost:3000"
+echo "=== Esperando IP pública de Grafana (puede tomar 1-2 minutos) ==="
+sleep 30
+GRAFANA_IP=$(kubectl get svc $RELEASE-grafana -n $NAMESPACE -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Grafana: http://$GRAFANA_IP"
 echo ""
+echo "=== Accesos por port-forward (Prometheus y Alertmanager) ==="
 echo "Prometheus:"
 echo " kubectl port-forward svc/$RELEASE-kube-prometheus-prometheus -n $NAMESPACE 9090:9090"
 echo " → http://localhost:9090"
