@@ -17,3 +17,8 @@ alertmanager:
         email_configs:
           - to: 'colocar_destinario'
             send_resolved: true
+
+prometheus:
+  prometheusSpec:
+    ruleSelector: {}
+    ruleNamespaceSelector: {}

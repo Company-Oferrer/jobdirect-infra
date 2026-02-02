@@ -73,4 +73,3 @@ echo " kubectl port-forward svc/$RELEASE-kube-prometheus-alertmanager -n $NAMESP
 echo " → http://localhost:9093"
 echo ""
 echo "✅ Instalación completada correctamente"
-dasd
