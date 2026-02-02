@@ -21,22 +21,13 @@ echo "→ Limpiando webhooks residuales (si existen)"
 kubectl delete validatingwebhookconfiguration monitoring-kube-prometheus-admission 2>/dev/null || true
 kubectl delete mutatingwebhookconfiguration monitoring-kube-prometheus-admission 2>/dev/null || true
 
-echo "→ FASE 1: instalar kube-prometheus-stack SIN webhooks"
+echo "→ Instalando kube-prometheus-stack"
 helm upgrade --install $RELEASE prometheus-community/kube-prometheus-stack \
   -n $NAMESPACE \
   -f values-dev.yaml \
   --set prometheusOperator.admissionWebhooks.enabled=false \
-  --wait=false
-
-echo "→ Esperando kube-prometheus-operator..."
-kubectl rollout status deployment/$RELEASE-kube-prometheus-operator \
-  -n $NAMESPACE \
-  --timeout=300s
-
-echo "→ FASE 2: habilitando webhooks (upgrade limpio)"
-helm upgrade $RELEASE prometheus-community/kube-prometheus-stack \
-  -n $NAMESPACE \
-  -f values-dev.yaml
+  --set prometheusOperator.tls.enabled=false \
+  --wait --timeout 300s
 
 echo "→ Esperando Prometheus..."
 kubectl wait --for=condition=Ready pod \
